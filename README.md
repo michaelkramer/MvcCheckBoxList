@@ -1,5 +1,13 @@
+## My small changes for this project.
 
-## CheckBoxList(For) - a missing MVC extension v.1.4.4.4
+HtmlTag has new options.
+Options:
+* None (default)
+* Table
+* Vertical_Columns
+* LabelWrapping_Checkbox
+
+## CheckBoxList(For) - a missing MVC extension v.1.4.4.5 b
 
 Extension source code and MVC source project for Visual Studio 2012, .NET framework 4.0 and 4.5.
 
