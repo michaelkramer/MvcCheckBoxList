@@ -3,7 +3,11 @@
   /// Sets settings of an HTML wrapper that is used on a checkbox list
   /// </summary>
   public class HtmlListInfo {
-    public HtmlListInfo(
+      public HtmlListInfo()
+      {
+          htmlTag = HtmlTag.none;
+      }
+      public HtmlListInfo(
       HtmlTag htmlTag,
       int columns = 0,
       object htmlAttributes = null,

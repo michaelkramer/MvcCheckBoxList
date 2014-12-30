@@ -161,7 +161,7 @@ namespace MvcCheckBoxList.Library {
         sb = _createCheckBoxListElement
           (sb, htmlHelper, modelMetadata, htmlWrapper, htmlAttributesForCheckBox,
            selectedValues, itemIsSelected, disabledValues, listName, itemValue,
-           itemText, textLayout);
+           itemText, textLayout, htmlListInfo.htmlTag);
       }
       sb.Append(htmlWrapper.wrap_close);
 
@@ -243,6 +243,11 @@ namespace MvcCheckBoxList.Library {
                            wrapHtml_builder.ToString(TagRenderMode.EndTag);
           }
             break;
+          case HtmlTag.labelwrapping_checkbox:
+            {
+
+            }
+            break;
         }
       }
         // default setting creates vertical or horizontal column of checkboxes
@@ -282,17 +287,29 @@ namespace MvcCheckBoxList.Library {
     /// <param name="itemText">Text to be displayed next to checkbox</param>
     /// <param name="textLayout">Sets layout of a checkbox for right-to-left languages</param>
     /// <returns>String builder of checkbox list</returns>
-    private StringBuilder _createCheckBoxListElement
-      (StringBuilder sb, HtmlHelper htmlHelper, ModelMetadata modelMetadata,
-      htmlWrapperInfo htmlWrapper, IDictionary<string, object> htmlAttributesForCheckBox, 
-      List<string> selectedValues, string itemIsSelected, 
-      IEnumerable<string> disabledValues, string name, string itemValue, 
-      string itemText, TextLayout textLayout) {
+    private StringBuilder _createCheckBoxListElement(
+        StringBuilder sb, 
+        HtmlHelper htmlHelper, 
+        ModelMetadata modelMetadata,
+        htmlWrapperInfo htmlWrapper, 
+        IDictionary<string, object> htmlAttributesForCheckBox, 
+        List<string> selectedValues, 
+        string itemIsSelected, 
+        IEnumerable<string> disabledValues, 
+        string name, 
+        string itemValue, 
+        string itemText, 
+        TextLayout textLayout,
+        HtmlTag htmlTag
+    ) {
       // get full name from view model
       var fullName = htmlHelper.ViewContext.ViewData.TemplateInfo.GetFullHtmlFieldName(name);
+      var link_name = name + linked_label_counter++;
 
       // create checkbox tag
       var checkbox_builder = new TagBuilder("input");
+      var hidden_input_builder = new TagBuilder("input");
+      var linked_label_builder = new TagBuilder("label");
       
       if (selectedValues.Any(value => value == itemValue)) checkbox_builder.MergeAttribute("checked", "checked");
       bool selected;
@@ -303,37 +320,16 @@ namespace MvcCheckBoxList.Library {
       checkbox_builder.MergeAttribute("type", "checkbox");
       checkbox_builder.MergeAttribute("value", itemValue);
       checkbox_builder.MergeAttribute("name", fullName);
-
-      // create linked label tag
-      var link_name = name + linked_label_counter++;
       checkbox_builder.GenerateId(link_name);
-      var linked_label_builder = new TagBuilder("label");
-      linked_label_builder.MergeAttribute("for", link_name.Replace(".", "_"));
-      linked_label_builder.MergeAttributes(htmlAttributesForCheckBox.toDictionary());
-      linked_label_builder.InnerHtml = itemText;
 
-      // if there are any errors for a named field, we add the css attribute
+        // if there are any errors for a named field, we add the css attribute
       ModelState modelState;
       if (htmlHelper.ViewData.ModelState.TryGetValue(fullName, out modelState))
         if (modelState.Errors.Count > 0)
           checkbox_builder.AddCssClass(HtmlHelper.ValidationInputCssClassName);
       checkbox_builder.MergeAttributes(htmlHelper.GetUnobtrusiveValidationAttributes(name, modelMetadata));
 
-      // open checkbox tag wrapper
-      if (textLayout == TextLayout.RightToLeft) {
-        // then set style for displaying checkbox for right-to-left languages
-        var defaultSectionStyle = "style=\"text-align: right;\"";
-        sb.Append(htmlWrapper.wrap_element != htmlElementTag.None
-                    ? "<" + htmlWrapper.wrap_element + " " + defaultSectionStyle + ">"
-                    : "");
-      }
-      else {
-        sb.Append(htmlWrapper.wrap_element != htmlElementTag.None
-                    ? "<" + htmlWrapper.wrap_element + ">"
-                    : "");
-      }
-
-      // build hidden tag for disabled checkbox (so the value will post)
+        // build hidden tag for disabled checkbox (so the value will post)
       if (disabledValues != null && disabledValues.ToList().Any(x => x == itemValue)) {
         // set main checkbox to be disabled
         checkbox_builder.MergeAttribute("disabled", "disabled");
@@ -341,7 +337,7 @@ namespace MvcCheckBoxList.Library {
         // create a hidden input with checkbox value
         // so it can be posted if checked
         if (selectedValues.Any(x => x == itemValue)) {
-          var hidden_input_builder = new TagBuilder("input");
+          
           hidden_input_builder.MergeAttribute("type", "hidden");
           hidden_input_builder.MergeAttribute("value", itemValue);
           hidden_input_builder.MergeAttribute("name", name);
@@ -349,34 +345,89 @@ namespace MvcCheckBoxList.Library {
         }
       }
 
-      // create checkbox and tag combination
-      if (textLayout == TextLayout.RightToLeft) {
-        // then display checkbox for right-to-left languages
-        sb.Append(linked_label_builder.ToString(TagRenderMode.Normal));
-        sb.Append(checkbox_builder.ToString(TagRenderMode.Normal));
+        switch (htmlTag)
+      {
+          case HtmlTag.labelwrapping_checkbox:
+              {
+                  // create linked label tag
+
+                  
+                  linked_label_builder.MergeAttributes(htmlAttributesForCheckBox.toDictionary());
+                  
+                  linked_label_builder.InnerHtml = string.Format("{0}{1}", checkbox_builder.ToString(TagRenderMode.SelfClosing), itemText);
+                  sb.Append(linked_label_builder.ToString(TagRenderMode.Normal));
+                  return sb;
+              }
+              
+          default:
+              {
+
+
+                  // create linked label tag
+                  linked_label_builder.MergeAttribute("for", link_name.Replace(".", "_"));
+                  linked_label_builder.MergeAttributes(htmlAttributesForCheckBox.toDictionary());
+                  linked_label_builder.InnerHtml = itemText;
+
+
+
+                  // open checkbox tag wrapper
+                  if (textLayout == TextLayout.RightToLeft)
+                  {
+                      // then set style for displaying checkbox for right-to-left languages
+                      var defaultSectionStyle = "style=\"text-align: right;\"";
+                      sb.Append(htmlWrapper.wrap_element != htmlElementTag.None
+                                  ? "<" + htmlWrapper.wrap_element + " " + defaultSectionStyle + ">"
+                                  : "");
+                  }
+                  else
+                  {
+                      sb.Append(htmlWrapper.wrap_element != htmlElementTag.None
+                                  ? "<" + htmlWrapper.wrap_element + ">"
+                                  : "");
+                  }
+
+                  // build hidden tag for disabled checkbox (so the value will post)
+                  if (disabledValues != null && disabledValues.ToList().Any(x => x == itemValue))
+                  {
+                      if (selectedValues.Any(x => x == itemValue))
+                      {
+                          sb.Append(hidden_input_builder.ToString(TagRenderMode.Normal));
+                      }
+                  }
+
+                  // create checkbox and tag combination
+                  if (textLayout == TextLayout.RightToLeft)
+                  {
+                      // then display checkbox for right-to-left languages
+                      sb.Append(linked_label_builder.ToString(TagRenderMode.Normal));
+                      sb.Append(checkbox_builder.ToString(TagRenderMode.Normal));
+                  }
+                  else
+                  {
+                      sb.Append(checkbox_builder.ToString(TagRenderMode.Normal));
+                      sb.Append(linked_label_builder.ToString(TagRenderMode.Normal));
+                  }
+
+                  // close checkbox tag wrapper
+                  sb.Append(htmlWrapper.wrap_element != htmlElementTag.None
+                              ? "</" + htmlWrapper.wrap_element + ">"
+                              : "");
+
+                  // add element ending
+                  sb.Append(htmlWrapper.append_to_element);
+
+                  // add table column break, if applicable
+                  htmlwrap_rowbreak_counter += 1;
+                  if (htmlwrap_rowbreak_counter == htmlWrapper.separator_max_counter)
+                  {
+                      sb.Append(htmlWrapper.wrap_rowbreak);
+                      htmlwrap_rowbreak_counter = 0;
+                  }
+
+                  // return string builder with checkbox html markup
+                  return sb;
+              }
       }
-      else {
-        sb.Append(checkbox_builder.ToString(TagRenderMode.Normal));
-        sb.Append(linked_label_builder.ToString(TagRenderMode.Normal));
-      }
-
-      // close checkbox tag wrapper
-      sb.Append(htmlWrapper.wrap_element != htmlElementTag.None
-                  ? "</" + htmlWrapper.wrap_element + ">"
-                  : "");
-
-      // add element ending
-      sb.Append(htmlWrapper.append_to_element);
-
-      // add table column break, if applicable
-      htmlwrap_rowbreak_counter += 1;
-      if (htmlwrap_rowbreak_counter == htmlWrapper.separator_max_counter) {
-        sb.Append(htmlWrapper.wrap_rowbreak);
-        htmlwrap_rowbreak_counter = 0;
-      }
-
-      // return string builder with checkbox html markup
-      return sb;
     }
 
   }

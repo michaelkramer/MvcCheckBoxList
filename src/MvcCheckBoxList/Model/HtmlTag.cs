@@ -4,7 +4,9 @@
   /// </summary>
   public enum HtmlTag {
     //ul,
-    table,
-    vertical_columns
+      none = 0,
+    table = 1,
+    vertical_columns = 2,
+    labelwrapping_checkbox = 3
   }
 }
